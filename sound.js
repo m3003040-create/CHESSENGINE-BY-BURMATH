@@ -142,14 +142,7 @@
         if (settings) {
             setEnabled(settings.soundEnabled !== undefined ? settings.soundEnabled : true);
         }
-        // Подписка на изменение настроек через UI
-        if (window.UI && window.UI.setCallbacks) {
-            const oldCallback = window.UI.callbacks?.onSettingsChange;
-            window.UI.callbacks.onSettingsChange = (newSettings) => {
-                if (oldCallback) oldCallback(newSettings);
-                setEnabled(newSettings.soundEnabled);
-            };
-        }
+        // Settings.apply() синхронизирует звук при сохранении настроек.
     }
 
     // Инициализация модуля

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="description" content="BURCHESS — самый сильный шахматный движок в мире. Играйте против нейросетевого движка, превосходящего Stockfish.">
+    <meta name="description" content="BURCHESS — шахматы с движками Марика. Играйте с выбранным соперником или наблюдайте партию двух движков.">
     <meta name="theme-color" content="#2c3e50">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -11,19 +11,42 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
     <link rel="stylesheet" href="styles.css">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' fill='%23333'%3E♟️%3C/text%3E%3C/svg%3E">
     <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90' fill='%23333'%3E♟️%3C/text%3E%3C/svg%3E">
 </head>
 <body>
-    <div class="app">
+    <div class="connection-indicators" aria-label="Доступность движков">
+        <div id="connection-status-old" class="connection-indicator connecting" role="status" aria-live="polite" aria-label="Старый движок Марика: подключение" title="Старый движок Марика: подключение" tabindex="0">
+            <span class="connection-dot" aria-hidden="true"></span>
+            <span class="visually-hidden" id="connection-status-old-text">Старый движок Марика: подключение</span>
+        </div>
+        <div id="connection-status-new" class="connection-indicator connecting" role="status" aria-live="polite" aria-label="Новый движок Марика: подключение" title="Новый движок Марика: подключение" tabindex="0">
+            <span class="connection-dot" aria-hidden="true"></span>
+            <span class="visually-hidden" id="connection-status-new-text">Новый движок Марика: подключение</span>
+        </div>
+    </div>
+    <!-- Экран загрузки движка -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">BURCHESS</div>
+            <div class="loading-piece">♚</div>
+            <div class="loading-bar-track">
+                <div class="loading-bar-fill" id="loading-bar-fill"></div>
+            </div>
+            <div class="loading-status" id="loading-status" role="status" aria-live="polite">Подключение к серверу с движком президента школы Марика</div>
+        </div>
+    </div>
+
+    <div class="app" style="display:none;" id="app-container">
         <header class="main-header">
             <div class="logo-area">
                 <h1>BURCHESS <span class="badge">SUPREME</span></h1>
                 <div class="engine-indicator" id="engine-status">
                     <span class="status-led"></span>
-                    <span>Движок активен</span>
+                    <span class="engine-status-text">Подключение движка...</span>
                 </div>
             </div>
             <div class="header-controls">
@@ -31,6 +54,44 @@
                 <button id="theme-toggle" class="icon-btn" title="Тёмная тема">🌙</button>
             </div>
         </header>
+
+        <section class="game-setup" aria-label="Выбор режима и движка">
+            <div class="setup-field">
+                <label for="game-mode">Режим игры</label>
+                <select id="game-mode">
+                    <option value="human">Игрок против движка</option>
+                    <option value="arena">Движок против движка</option>
+                </select>
+            </div>
+            <div class="setup-field" id="human-engine-field">
+                <label for="opponent-engine">Ваш соперник</label>
+                <select id="opponent-engine">
+                    <option value="old">Старый движок Марика</option>
+                    <option value="new">Новый движок Марика</option>
+                </select>
+            </div>
+            <div class="arena-engine-fields" id="arena-engine-fields" hidden>
+                <div class="setup-field">
+                    <label for="white-engine">Белые</label>
+                    <select id="white-engine">
+                        <option value="old">Старый движок Марика</option>
+                        <option value="new">Новый движок Марика</option>
+                    </select>
+                </div>
+                <div class="setup-field">
+                    <label for="black-engine">Чёрные</label>
+                    <select id="black-engine">
+                        <option value="new">Новый движок Марика</option>
+                        <option value="old">Старый движок Марика</option>
+                    </select>
+                </div>
+            </div>
+            <div class="setup-actions">
+                <button id="start-game-btn" class="btn primary">▶ Начать партию</button>
+                <button id="arena-pause-btn" class="btn" hidden>⏸ Пауза</button>
+            </div>
+            <p class="setup-message" id="game-setup-message" role="status" aria-live="polite">Проверка доступности движков...</p>
+        </section>
 
         <div class="status-bar">
             <div class="turn-indicator" id="turn-indicator">
@@ -51,7 +112,7 @@
 
         <main class="game-main">
             <div class="board-wrapper">
-                <canvas id="chess-canvas" width="600" height="600" class="chessboard"></canvas>
+                <div id="chess-board" class="chessboard-container"></div>
                 <div class="board-controls">
                     <button id="new-game-btn" class="btn primary">♻️ Новая игра</button>
                     <button id="flip-board-btn" class="btn">🔄 Перевернуть</button>
@@ -85,7 +146,7 @@
         </main>
 
         <footer class="footer">
-            <div class="legal">BURCHESS v1.0 | Нейросетевой движок | Все правила шахмат реализованы</div>
+            <div class="legal">BURCHESS | Движки Марика | Все правила шахмат реализованы</div>
         </footer>
 
         <!-- Модальные окна -->
@@ -94,14 +155,6 @@
                 <span class="close">&times;</span>
                 <h2>⚙️ Настройки игры</h2>
                 <div class="settings-group">
-                    <label>Сложность (глубина поиска): <span id="skill-value-display">15</span></label>
-                    <input type="range" id="skill-level" min="1" max="20" value="15" step="1">
-                </div>
-                <div class="settings-group">
-                    <label>Время на ход (мс):</label>
-                    <input type="number" id="move-time" value="1000" step="100" min="100" max="10000">
-                </div>
-                <div class="settings-group">
                     <label>Игрок играет за:</label>
                     <select id="player-color">
                         <option value="white">Белые</option>
@@ -109,18 +162,14 @@
                     </select>
                 </div>
                 <div class="settings-group">
+                    <label>Время на партию (минут):</label>
+                    <input type="number" id="game-time" value="15" step="1" min="1" max="60">
+                </div>
+                <div class="settings-group">
                     <label><input type="checkbox" id="sound-toggle" checked> 🔊 Звуковые эффекты</label>
                 </div>
                 <div class="settings-group">
-                    <label><input type="checkbox" id="show-coordinates"> Показывать координаты на доске</label>
-                </div>
-                <div class="settings-group">
-                    <label>Стиль фигур:</label>
-                    <select id="piece-style">
-                        <option value="merida">Merida (классические)</option>
-                        <option value="alpha">Alpha (современные)</option>
-                        <option value="cburnett">CBurnett (контрастные)</option>
-                    </select>
+                    <label><input type="checkbox" id="show-coordinates" checked> Показывать координаты на доске</label>
                 </div>
                 <div class="modal-buttons">
                     <button id="save-settings" class="btn primary">Сохранить</button>
@@ -152,24 +201,97 @@
         <div id="toast-message" class="toast"></div>
     </div>
 
-    <!-- Подключаем все модули (все файлы в корне) -->
-    <script src="ui.js"></script>
-    <script src="board.js"></script>
-    <script src="movehistory.js"></script>
+    <!-- Библиотеки -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+
+    <!-- Модули приложения -->
     <script src="sound.js"></script>
-    <script src="animations.js"></script>
     <script src="settings.js"></script>
+    <script src="ui.js"></script>
+    <script src="movehistory.js"></script>
     <script src="bridge.js"></script>
-    <script src="uci.js"></script>
-    <script src="worker.js"></script>
+    <script src="engine-bridge.js"></script>
     <script src="game.js"></script>
     <script>
-        // Инициализация приложения после загрузки всех скриптов
         window.addEventListener('DOMContentLoaded', () => {
-            if (window.GameApp && typeof window.GameApp.init === 'function') {
-                window.GameApp.init();
+            const loadingStatus = document.getElementById('loading-status');
+            const loadingFill = document.getElementById('loading-bar-fill');
+            const loadingScreen = document.getElementById('loading-screen');
+            const appContainer = document.getElementById('app-container');
+
+            // Анимация прогресс-бара во время подключения или загрузки движка
+            let progress = 0;
+            let gameStarted = false;
+            const progressInterval = setInterval(() => {
+                // Медленно ползём до 90%, остальное — после готовности движка
+                if (progress < 90) {
+                    progress += Math.random() * 2;
+                    progress = Math.min(progress, 90);
+                    loadingFill.style.width = progress + '%';
+                }
+            }, 200);
+
+            function hideLoadingScreen() {
+                clearInterval(progressInterval);
+                loadingFill.style.width = '100%';
+                loadingStatus.textContent = 'Готово!';
+                setTimeout(() => {
+                    loadingScreen.classList.add('loading-hidden');
+                    appContainer.style.display = '';
+                    // Нужно обновить размер доски после показа
+                    if (window.Game && window.Game.resizeBoard) window.Game.resizeBoard();
+                    $(window).trigger('resize');
+                }, 400);
+            }
+
+            const t0 = performance.now();
+            const log = (msg) => console.log(`[Loading +${((performance.now() - t0) / 1000).toFixed(1)}s] ${msg}`);
+
+            function startGame() {
+                if (gameStarted) return;
+                gameStarted = true;
+                if (window.Game && typeof window.Game.init === 'function') {
+                    window.Game.init();
+                }
+                hideLoadingScreen();
+            }
+
+            // Подписываемся до init(): движки могут подключиться сразу.
+            if (window.Bridge) {
+                window.Bridge.setCallbacks({
+                    onReady: function() {
+                        log('Движок готов');
+                        startGame();
+                    },
+                    onProvidersChange: function(providers) {
+                        if (window.UI) window.UI.updateProviders(providers);
+                        if (gameStarted) return;
+                        if (providers.old.connected && providers.new.connected) {
+                            loadingStatus.textContent = 'Оба движка Марика готовы';
+                        } else if (providers.old.connected || providers.new.connected) {
+                            loadingStatus.textContent = 'Движок Марика готов. Проверка второго движка...';
+                        } else if (providers.old.state === 'connecting' || providers.new.state === 'connecting') {
+                            loadingStatus.textContent = 'Подключение к серверу с движком президента школы Марика';
+                        } else {
+                            loadingStatus.textContent = 'Подготовка резервного движка...';
+                        }
+                    },
+                    onError: function(error) {
+                        log('Ошибка движка: ' + error);
+                        if (gameStarted) return;
+                        clearInterval(progressInterval);
+                        loadingStatus.setAttribute('role', 'alert');
+                        loadingStatus.textContent = 'Не удалось загрузить движок. Проверьте подключение и обновите страницу.';
+                    }
+                });
+                log('Подключаем движки Марика');
+                window.Bridge.init();
             } else {
-                console.error('GameApp не загружен');
+                log('Bridge НЕ найден! Запускаем без движка');
+                if (window.UI) window.UI.setConnectionStatus(false, 'error');
+                startGame();
             }
         });
     </script>

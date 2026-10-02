@@ -1,35 +1,36 @@
 (function(){
-    const DEFAULTS = {
-        skillLevel: 15,
-        moveTime: 1000,
+    var DEFAULTS = {
         playerColor: 'white',
+        gameTime: 15,
         soundEnabled: true,
         showCoordinates: true,
-        pieceStyle: 'merida',
         theme: 'light',
-        boardSize: 600,
-        animationSpeed: 250,
-        showThinking: true,
-        highlightLastMove: true,
-        autoFlip: false,
-        gameMode: 'normal',
-        timeControl: '15+0',
-        fenStart: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1'
+        gameMode: 'human',
+        opponentEngine: 'old',
+        whiteEngine: 'old',
+        blackEngine: 'new'
     };
 
-    let current = { ...DEFAULTS };
+    var current = {};
+    for (var k in DEFAULTS) current[k] = DEFAULTS[k];
 
     function load() {
         try {
-            const stored = localStorage.getItem('burchess_settings');
+            var stored = localStorage.getItem('burchess_settings');
             if (stored) {
-                const parsed = JSON.parse(stored);
-                current = { ...DEFAULTS, ...parsed };
+                var parsed = JSON.parse(stored);
+                current = {};
+                for (var k in DEFAULTS) current[k] = DEFAULTS[k];
+                for (var k in parsed) {
+                    if (DEFAULTS.hasOwnProperty(k)) current[k] = parsed[k];
+                }
             } else {
-                current = { ...DEFAULTS };
+                current = {};
+                for (var k in DEFAULTS) current[k] = DEFAULTS[k];
             }
         } catch(e) {
-            current = { ...DEFAULTS };
+            current = {};
+            for (var k in DEFAULTS) current[k] = DEFAULTS[k];
         }
         apply();
         return current;
@@ -43,19 +44,18 @@
     }
 
     function apply() {
-        document.documentElement.setAttribute('data-theme', current.theme);
-        if (window.Board && current.showCoordinates !== undefined) {
-            window.Board.showCoordinates = current.showCoordinates;
-            window.Board.draw();
-        }
-        if (window.Sound) window.Sound.setEnabled(current.soundEnabled);
-        if (window.Animations) window.Animations.setDuration(current.animationSpeed);
+        document.documentElement.setAttribute('data-theme', current.theme || 'light');
+        if (window.Sound && current.soundEnabled !== undefined) window.Sound.setEnabled(current.soundEnabled);
     }
 
     function get(key) { return current[key]; }
     function set(key, value) { current[key] = value; save(); }
-    function reset() { current = { ...DEFAULTS }; save(); }
+    function reset() {
+        current = {};
+        for (var k in DEFAULTS) current[k] = DEFAULTS[k];
+        save();
+    }
 
-    window.Settings = { load, save, get, set, reset, DEFAULTS };
+    window.Settings = { load: load, save: save, get: get, set: set, reset: reset, DEFAULTS: DEFAULTS };
     window.Settings.load();
 })();
